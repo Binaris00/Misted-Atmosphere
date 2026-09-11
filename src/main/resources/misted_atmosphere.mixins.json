@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.binaris.misted_atmosphere.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "misted_atmosphere.refmap.json",
+  "mixins": [
+    "DimensionTypeMixin",
+    "MobMixin"
+  ],
+  "client": [
+    "ClientLevelMixin",
+    "FogRendererMixin",
+    "LevelRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
