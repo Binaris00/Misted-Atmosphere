@@ -27,6 +27,7 @@ public final class Config {
     private static final ForgeConfigSpec.BooleanValue TEAL_TINT_ENABLED;
     private static final ForgeConfigSpec.DoubleValue TEAL_STRENGTH;
     private static final ForgeConfigSpec.ConfigValue<String> TEAL_COLOR;
+    private static final ForgeConfigSpec.DoubleValue FADE_SECONDS;
 
     public static boolean moonCycleEnabled;
     public static boolean bloodMoonEnabled;
@@ -46,6 +47,7 @@ public final class Config {
     public static float tealRed;
     public static float tealGreen;
     public static float tealBlue;
+    public static float fadeSeconds;
 
     static {
         ForgeConfigSpec.Builder common = new ForgeConfigSpec.Builder();
@@ -105,6 +107,11 @@ public final class Config {
                 .comment("Teal grading color in #RRGGBB format")
                 .define("tealColor", "#12545F");
         client.pop();
+        client.comment("Transition settings").push("transitions");
+        FADE_SECONDS = client
+                .comment("Smooth fade time in seconds when entering or leaving the mist, and when the overcast look turns on or off. 0 disables the fade")
+                .defineInRange("fadeSeconds", 1.5D, 0.0D, 10.0D);
+        client.pop();
         CLIENT_SPEC = client.build();
     }
 
@@ -142,6 +149,7 @@ public final class Config {
         tealRed = teal[0];
         tealGreen = teal[1];
         tealBlue = teal[2];
+        fadeSeconds = FADE_SECONDS.get().floatValue();
     }
 
     static float[] parseColor(String value, float fallbackRed, float fallbackGreen, float fallbackBlue) {

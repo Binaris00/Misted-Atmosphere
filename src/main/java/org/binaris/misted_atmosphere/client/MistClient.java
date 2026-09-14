@@ -1,6 +1,7 @@
 package org.binaris.misted_atmosphere.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.Util;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -12,13 +13,12 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.material.FogType;
 import net.minecraft.world.phys.Vec3;
 import org.binaris.misted_atmosphere.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class MistClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("MistedAtmosphere");
-    private static long lastLog = 0L;
+    private static float mistAmount;
+    private static float overcastAmount;
+    private static long lastUpdateMillis = -1L;
 
     private MistClient() {
     }
@@ -46,40 +46,64 @@ public final class MistClient {
         return biome.is(BiomeTags.IS_OCEAN) || biome.is(BiomeTags.IS_RIVER) || biome.is(BiomeTags.IS_BEACH);
     }
 
+    private static void tick(ClientLevel level, Vec3 cameraPos) {
+        if (level == null || level.dimension() != Level.OVERWORLD) {
+            mistAmount = 0.0F;
+            overcastAmount = 0.0F;
+            lastUpdateMillis = -1L;
+            return;
+        }
+        float targetMist = isMistZone(level, cameraPos) ? 1.0F : 0.0F;
+        float targetOvercast = Config.overcastEnabled && !isNight(level) ? 1.0F : 0.0F;
+        long now = Util.getMillis();
+        if (lastUpdateMillis < 0L) {
+            lastUpdateMillis = now;
+            mistAmount = targetMist;
+            overcastAmount = targetOvercast;
+            return;
+        }
+        float deltaSeconds = (now - lastUpdateMillis) / 1000.0F;
+        if (deltaSeconds < 0.005F) {
+            return;
+        }
+        lastUpdateMillis = now;
+        float step = Config.fadeSeconds <= 0.0F ? 1.0F : Math.min(deltaSeconds, 0.25F) / Config.fadeSeconds;
+        mistAmount = MistColors.approach(mistAmount, targetMist, step);
+        overcastAmount = MistColors.approach(overcastAmount, targetOvercast, step);
+    }
+
     public static float[] transformFogColor(ClientLevel level, Vec3 cameraPos, float red, float green, float blue) {
         if (level == null || level.dimension() != Level.OVERWORLD) {
             return null;
         }
+        tick(level, cameraPos);
         float[] result = {red, green, blue};
         boolean changed = false;
-        if (Config.overcastEnabled && !isNight(level)) {
-            result = MistColors.overcast(result[0], result[1], result[2], Config.overcastStrength);
+        if (overcastAmount > 0.0F) {
+            result = MistColors.overcast(result[0], result[1], result[2], Config.overcastStrength * overcastAmount);
             changed = true;
         }
-        if (Config.tealTintEnabled && isMistZone(level, cameraPos)) {
-            result = MistColors.blend(result[0], result[1], result[2], Config.tealRed, Config.tealGreen, Config.tealBlue, Config.tealStrength);
+        if (Config.tealTintEnabled && mistAmount > 0.0F) {
+            result = MistColors.blend(result[0], result[1], result[2], Config.tealRed, Config.tealGreen, Config.tealBlue, Config.tealStrength * mistAmount);
             changed = true;
-        }
-        long now = System.currentTimeMillis();
-        if (now - lastLog > 3000L) {
-            lastLog = now;
-            LOGGER.info("[Mist] transform cfg overcast={} teal={} night={} mist={} in: {},{},{} out: {},{},{}",
-                    Config.overcastEnabled, Config.tealTintEnabled, isNight(level), isMistZone(level, cameraPos),
-                    String.format("%.3f", red), String.format("%.3f", green), String.format("%.3f", blue),
-                    String.format("%.3f", result[0]), String.format("%.3f", result[1]), String.format("%.3f", result[2]));
         }
         return changed ? result : null;
     }
 
     public static void applyMistDensity(Camera camera) {
-        if (!Config.mistEnabled || camera.getFluidInCamera() != FogType.NONE) {
-            return;
-        }
         ClientLevel level = Minecraft.getInstance().level;
-        if (level == null || !isMistZone(level, camera.getPosition())) {
+        if (level == null) {
             return;
         }
-        RenderSystem.setShaderFogStart(Math.min(RenderSystem.getShaderFogStart(), Config.mistFogStart));
-        RenderSystem.setShaderFogEnd(Math.min(RenderSystem.getShaderFogEnd(), Config.mistFogEnd));
+        tick(level, camera.getPosition());
+        if (!Config.mistEnabled || camera.getFluidInCamera() != FogType.NONE || mistAmount <= 0.0F) {
+            return;
+        }
+        float currentStart = RenderSystem.getShaderFogStart();
+        float currentEnd = RenderSystem.getShaderFogEnd();
+        float targetStart = Math.min(currentStart, Config.mistFogStart);
+        float targetEnd = Math.min(currentEnd, Config.mistFogEnd);
+        RenderSystem.setShaderFogStart(MistColors.lerp(currentStart, targetStart, mistAmount));
+        RenderSystem.setShaderFogEnd(MistColors.lerp(currentEnd, targetEnd, mistAmount));
     }
 }

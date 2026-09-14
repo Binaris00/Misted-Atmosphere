@@ -33,6 +33,16 @@ public final class MistColors {
         return from + (to - from) * delta;
     }
 
+    public static float approach(float current, float target, float step) {
+        if (current < target) {
+            return Math.min(target, current + step);
+        }
+        if (current > target) {
+            return Math.max(target, current - step);
+        }
+        return target;
+    }
+
     public static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
     }

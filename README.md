@@ -35,6 +35,7 @@ Daylight is desaturated and dimmed toward grey so the sky never looks fully brig
 - During the **day**, dense fog sits over oceans, rivers and beaches.
 - During the **night**, the mist extends everywhere.
 - While inside the mist, fog and sky are blended toward a **blue teal** color and the fog distance is shortened (default 192 → 80 blocks), which reads as a color grade without requiring shaders. The fog is transparent enough to still make out vague silhouettes; raise `mist.fogEnd` for clearer views, lower it for a denser wall of mist.
+- Entering and leaving the mist (and the overcast look turning on/off) is **faded smoothly over `transitions.fadeSeconds`** instead of snapping, so walking across a coastline or shoreline does not pop.
 
 Fog color is transformed by redirecting the single `RenderSystem.setShaderFogColor` call inside `FogRenderer#levelFogColor`, and the density is applied at the tail of `FogRenderer#setupFog`.
 
@@ -118,6 +119,7 @@ Two config files are generated under `config/`:
 | `mist.tealTintEnabled` | `true` | Teal grading inside the mist |
 | `mist.tealStrength` | `0.55` | `0` = none, `1` = full teal |
 | `mist.tealColor` | `#12545F` | Teal color, `#RRGGBB` |
+| `transitions.fadeSeconds` | `1.5` | Fade time when entering/leaving the mist or overcast; `0` disables the fade |
 
 ## Moon assets
 
