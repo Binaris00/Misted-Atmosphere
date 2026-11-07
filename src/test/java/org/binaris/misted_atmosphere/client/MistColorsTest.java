@@ -63,4 +63,22 @@ class MistColorsTest {
         float[] high = MistColors.blend(0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F, 5.0F);
         assertEquals(1.0F, high[0], EPSILON);
     }
+
+    @Test
+    void approachMovesTowardsTarget() {
+        assertEquals(0.25F, MistColors.approach(0.0F, 1.0F, 0.25F), EPSILON);
+        assertEquals(0.75F, MistColors.approach(1.0F, 0.0F, 0.25F), EPSILON);
+    }
+
+    @Test
+    void approachDoesNotOvershoot() {
+        assertEquals(1.0F, MistColors.approach(0.9F, 1.0F, 0.5F), EPSILON);
+        assertEquals(0.0F, MistColors.approach(0.1F, 0.0F, 0.5F), EPSILON);
+    }
+
+    @Test
+    void approachWithZeroStepKeepsValue() {
+        assertEquals(0.5F, MistColors.approach(0.5F, 1.0F, 0.0F), EPSILON);
+        assertEquals(0.5F, MistColors.approach(0.5F, 0.5F, 0.0F), EPSILON);
+    }
 }
